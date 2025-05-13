@@ -1,0 +1,10 @@
+div {
+    set background-color: black
+    set x: 0aw
+
+    p {
+        set color: white
+
+        Hello World
+    }
+}

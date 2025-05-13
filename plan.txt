@@ -1,0 +1,22 @@
+- X, Y, Z positioning, Height Width
+- Units: aw (absolute width), vw (view width)
+- Widget Structure
+
+Example
+
+<DOCTYPE! html>
+<head>
+</head>
+<body>
+    <div style="position: absolute; left: 50px; top: 50px; width: 75vw; height: 75vw">
+    </div>
+</body>
+
+
+(50aw, 50aw) (75vw, 75vw) {
+    set background-color: black;
+    p (10aw, 10aw) {
+        set color: white;
+        Hello World
+    }
+}
