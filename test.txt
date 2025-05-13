@@ -1,10 +1,14 @@
 div {
-    set background-color: black
-    set x: 0aw
+    background-color: black;
+    x: 0aw;
 
     p {
-        set color: white
+        set color: white;
 
         Hello World
+    }
+
+    p {
+
     }
 }

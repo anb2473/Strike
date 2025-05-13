@@ -56,7 +56,7 @@ struct Compiler {
 
 impl Compiler {
     pub fn new(path: &str) -> Result<Self, io::Error> {
-        let file_contents = read_file(path)?.replace(";", "\n");
+        let file_contents = read_file(path)?.replace("&", "\n").replace("x", "left").replace("y", "top").replace("aw", "px");
 
         println!("{}", file_contents);
 
@@ -67,12 +67,13 @@ impl Compiler {
     }
 
     pub fn run(&self) -> Result<(), String> {
-        let lines = self.file_content.split("\n");
+        let mut lines = self.file_content.split("\n");
         let mut new_file: String = String::new();
 
         let mut element_stack: Vec<String> = Vec::new();
+        let mut next_line = lines.next(); // Buffer the first item
 
-        for raw_line in lines {
+        while let Some(raw_line) = next_line {
             let line = raw_line.trim();
             let mut new_line: String = String::new();
 
@@ -85,64 +86,96 @@ impl Compiler {
                 }
             };
 
-            if suffix == '{' {
-                if !element_stack.is_empty() {
-                    new_line += ">\n"
-                }
+            match suffix {
+                '{' => {
+                    if !element_stack.is_empty() {
+                        new_line += ">\n"
+                    }
 
-                let mut split_line = line.split(" "); // Mapping it to an owned string, consuming line
+                    let mut split_line = line.split(" "); // Mapping it to an owned string, consuming line
 
-                // Locate prefix, and if no prefix is found then simply default to element
-                let prefix = split_line.next().unwrap();
+                    // Locate prefix, and if no prefix is found then simply default to element
+                    let prefix = split_line.next().unwrap();
 
-                element_stack.push(prefix.to_string());
+                    element_stack.push(prefix.to_string());
 
-                // Extract size and position data
+                    // Extract size and position data
 
-                let mut classes = String::new();
-                let mut id = String::new();
-                
-                let mut i = 0;
-                for raw_part in split_line {
-                    let first_char = match raw_part.chars().next() {
-                        Some(val) => val,
-                        None => {
+                    let mut classes = String::new();
+                    let mut id = String::new();
+                    
+                    let mut i = 0;
+                    for raw_part in split_line {
+                        let first_char = match raw_part.chars().next() {
+                            Some(val) => val,
+                            None => {
+                                continue;
+                            }
+                        };
+
+                        if first_char == '{' {
                             continue;
                         }
-                    };
 
-                    if first_char == '{' {
-                        continue;
+                        if first_char == '.' {
+                            classes += raw_part;
+                            continue;
+                        }
+
+                        if first_char == '#' && id == "" {
+                            id += raw_part;
+                            continue;
+                        }
+                    
+                        println!("ERROR");
+
+                        i += 1; 
                     }
 
-                    if first_char == '.' {
-                        classes += raw_part;
-                        continue;
+                    new_line += format!("<{} class=\"{}\" id=\"{}\" style=\"position: absolute; padding: 0px; margin: 0px; ", prefix, classes, id).as_str()
+                },
+
+                '}' => {
+                    if let Some(element) = element_stack.pop() {
+                        new_line += format!("</{}>\n", element).as_str();
+                    }
+                    else {
+                        println!("ERROR");
+                    }
+                },
+
+                ';' => {
+                    let raw_option = lines.next();
+                    if let Some(next_unpacked_line) = raw_option {
+                        let next_suffix = match next_unpacked_line.chars().last() {
+                            Some(val) => val,
+                            None => {
+                                ' '
+                            }
+                        };
+
+                        if next_suffix != ';' {
+                            new_line += format!(" {}\">", line).as_str();
+                        }
+                        else {
+                            new_line += format!(" {}", line).as_str();
+                        }
+                    }
+                    else {
+                        println!("ERROR")
                     }
 
-                    if first_char == '#' && id == "" {
-                        id += raw_part;
-                        continue;
-                    }
-                   
-                    println!("ERROR");
-
-                    i += 1; 
+                    next_line = raw_option;
                 }
 
-                new_line += format!("<{} class=\"{}\" id=\"{}\" style=\"position: absolute; padding: 0px; margin: 0px; ", prefix, classes, id).as_str()
-            }
-
-            else if suffix == '}' {
-                if let Some(element) = element_stack.pop() {
-                    new_line = format!("</{}>\n", element);
+                _ => {
+                    new_line += format!(">\n{}\n", line).as_str()
                 }
-                else {
-                    println!("ERROR");
-                }
-            }
+            };
+            
+            new_file += new_line.as_str();
 
-            new_file += &new_line;
+            next_line = lines.next()
         }
 
         println!("{}", new_file);
